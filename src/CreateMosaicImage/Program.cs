@@ -121,7 +121,7 @@
             }
 
             //Console.WriteLine($"Added {success} of {files.Length} images.");
-            
+
             return 0;
         }
     }

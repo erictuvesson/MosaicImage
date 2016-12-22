@@ -1,5 +1,6 @@
 ﻿namespace CreateMosaicImage
 {
+    using MoreLinq;
     using Nine.Imaging;
     using Nine.Imaging.Filtering;
     using System;
@@ -13,7 +14,7 @@
     /// Color Value, this makes it easier to compare cell and 
     /// image average color.
     /// </summary>
-    struct ColorValue
+    struct ColorValue : IComparable<ColorValue>
     {
         public readonly double R, G, B;
 
@@ -24,16 +25,29 @@
             this.B = b;
         }
 
-        public float Value()
+        public int CompareTo(ColorValue other)
         {
-            return (float)(R + G + B);
+            return (this.Length() > other.Length()) ? 1 : -1;
         }
+
+        public double Length()
+        {
+            return (this.R * this.R) + (this.G * this.G) + (this.B * this.B);
+        }
+
+        public static ColorValue operator -(ColorValue value1, ColorValue value2)
+        {
+            return new ColorValue(value1.R - value2.R, value1.G - value2.G, value1.B - value2.B);
+        }
+
+        public static bool operator <=(ColorValue value1, ColorValue value2) { return value1.Length() <= value2.Length(); }
+        public static bool operator >=(ColorValue value1, ColorValue value2) { return value1.Length() >= value2.Length(); }
     }
 
     /// <summary>
     /// Saves the average color of a image while not keeping the image in memory.
     /// </summary>
-    struct ImageData
+    class ImageData : IComparable<ImageData>
     {
         public readonly ColorValue Color;
         public readonly string ImageFile;
@@ -42,6 +56,11 @@
         {
             this.Color = color;
             this.ImageFile = imageFile;
+        }
+
+        public int CompareTo(ImageData other)
+        {
+            return Color.CompareTo(other.Color);
         }
     }
 
@@ -102,12 +121,10 @@
                 
                 var imageData = new ImageData(new ColorValue(aR / pixelCount, aG / pixelCount, aB / pixelCount), filepath);
                 images.Add(imageData);
-
                 images.Add(imageData);
             }
 
-            // TODO: Error
-            return new ImageData();
+            return null;
         }
 
         /// <summary>
@@ -178,8 +195,11 @@
             var allImages = new List<ImageData>(images);
             if (allImages.Count == 0)
             {
-                throw new NotSupportedException("There are not inputed images.");
+                throw new NotSupportedException("There are not inputted images.");
             }
+
+            // Sort all the images.
+            allImages.Sort();
 
             // Create the image byte array.
             var imageBytes = new byte[desiredSize * desiredSize * 4];
@@ -189,56 +209,46 @@
             {
                 for (int cellY = 0; cellY < imagesPerRow; cellY++)
                 {
-                    var cellData = imageCells[cellX, cellY];
-                    var desiredCellValue = cellData.Value();
+                    var cellDesiredColor = imageCells[cellX, cellY];
 
                     int cellOffsetX = cellX * avatarSize;
                     int cellOffsetY = cellY * avatarSize;
 
                     if (allImages.Count > 0)
                     {
-                        // find the closest matching image to this cell
-                        var imageDataIndex = 0;
-                        var imageData = allImages[imageDataIndex];
-                        var imageDataValue = imageData.Color.Value();
-
-                        var cellAvg = Math.Abs(desiredCellValue - imageDataValue);
-
-                        for (int i = 0; i < allImages.Count; i++)
+                        // Find the closest matching image to this cell
+                        var closest = allImages.MinBy(n => Math.Abs((cellDesiredColor - n.Color).Length()));
+                        if (closest != null)
                         {
-                            var currentCellValue = allImages[i].Color.Value();
-                            // TODO: This could be improved to match the color better.
-                            if (cellAvg > Math.Abs(desiredCellValue - currentCellValue))
+                            // Remove it so we wont use it again.
+                            allImages.Remove(closest); //< TODO: Optimize
+
+                            // Add the image to the cell
+                            var avatarImage = Image.Load(closest.ImageFile);
+                            avatarImage = avatarImage.Resize(avatarSize);
+
+                            // Insert the avatar into the image.
+                            for (int x = 0; x < avatarSize; x++)
                             {
-                                imageDataIndex = i;
-                                imageData = allImages[i];
-                                imageDataValue = imageData.Color.Value();
+                                for (int y = 0; y < avatarSize; y++)
+                                {
+                                    var pixel = avatarImage[x, y];
+
+                                    int newX = cellOffsetX + x;
+                                    int newY = cellOffsetY + y;
+
+                                    int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
+                                    imageBytes[offset + 0] = pixel.B;
+                                    imageBytes[offset + 1] = pixel.G;
+                                    imageBytes[offset + 2] = pixel.R;
+                                    imageBytes[offset + 3] = pixel.A;
+                                }
                             }
                         }
-
-                        allImages.RemoveAt(imageDataIndex);
-
-                        // Add the image to the cell
-                        var avatarImage = Image.Load(imageData.ImageFile);
-                        avatarImage = avatarImage.Resize(avatarSize);
-
-                        // TODO: Ensure that the avatar image is the same as avatarSize
-
-                        for (int x = 0; x < avatarSize; x++)
+                        else
                         {
-                            for (int y = 0; y < avatarSize; y++)
-                            {
-                                var pixel = avatarImage[x, y];
-
-                                int newX = cellOffsetX + x;
-                                int newY = cellOffsetY + y;
-
-                                int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
-                                imageBytes[offset + 0] = pixel.B;
-                                imageBytes[offset + 1] = pixel.G;
-                                imageBytes[offset + 2] = pixel.R;
-                                imageBytes[offset + 3] = pixel.A;
-                            }
+                            // This should not happen.
+                            Debugger.Break();
                         }
                     }
                     else
@@ -254,9 +264,9 @@
                                 int newY = cellOffsetY + y;
 
                                 int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
-                                imageBytes[offset + 0] = (byte)(cellData.B * 255);
-                                imageBytes[offset + 1] = (byte)(cellData.G * 255);
-                                imageBytes[offset + 2] = (byte)(cellData.R * 255);
+                                imageBytes[offset + 0] = (byte)(cellDesiredColor.B * 255);
+                                imageBytes[offset + 1] = (byte)(cellDesiredColor.G * 255);
+                                imageBytes[offset + 2] = (byte)(cellDesiredColor.R * 255);
                                 imageBytes[offset + 3] = 255;
                             }
                         }
