@@ -9,9 +9,20 @@
     using System.Linq;
     using System.Threading.Tasks;
 
+    /// <summary>
+    /// Color Value, this makes it easier to compare cell and 
+    /// image average color.
+    /// </summary>
     struct ColorValue
     {
-        public double R, G, B;
+        public readonly double R, G, B;
+
+        public ColorValue(double r, double g, double b)
+        {
+            this.R = r;
+            this.G = g;
+            this.B = b;
+        }
 
         public float Value()
         {
@@ -19,16 +30,18 @@
         }
     }
 
+    /// <summary>
+    /// Saves the average color of a image while not keeping the image in memory.
+    /// </summary>
     struct ImageData
     {
-        // RGB Color values
-        public double R, G, B;
-        // Image Filepath
-        public string ImageFile;
-
-        public float Value()
+        public readonly ColorValue Color;
+        public readonly string ImageFile;
+        
+        public ImageData(ColorValue color, string imageFile)
         {
-            return (float)(R + G + B);
+            this.Color = color;
+            this.ImageFile = imageFile;
         }
     }
 
@@ -40,13 +53,14 @@
         private ColorValue[,] imageCells;
         private int imagesPerRow;
         private int avatarSize;
-
+        
         public MosaicImage(Image mosaicPattern, int desiredSize)
         {
             this.images = new ConcurrentBag<ImageData>();
             this.mosaicPattern = mosaicPattern;
             this.desiredSize = desiredSize;
 
+            // We could resize the pattern in here.
             Debug.Assert(mosaicPattern.Width == desiredSize);
             Debug.Assert(mosaicPattern.Height == desiredSize);
         }
@@ -56,22 +70,18 @@
         /// </summary>
         public async Task<ImageData> AddImage(string filepath)
         {
-            var imageData = new ImageData();
-            imageData.ImageFile = filepath;
-
             double aR = 0, aG = 0, aB = 0;
             double pixelCount = 0;
 
             Image image = null;
 
-            try
-            {
-                image = Image.Load(filepath);
-            }
+            // Try to load the image.
+            try { image = Image.Load(filepath); }
             catch (Exception e) { }
             
             if (image != null)
             {
+                // Forloop every pixel in the image
                 for (int x = 0; x < image.Width; x++)
                 {
                     for (int y = 0; y < image.Height; y++)
@@ -89,26 +99,35 @@
                         pixelCount++;
                     }
                 }
-
-                imageData.R = aR / pixelCount;
-                imageData.G = aG / pixelCount;
-                imageData.B = aB / pixelCount;
+                
+                var imageData = new ImageData(new ColorValue(aR / pixelCount, aG / pixelCount, aB / pixelCount), filepath);
+                images.Add(imageData);
 
                 images.Add(imageData);
             }
 
             // TODO: Error
-            return imageData;
+            return new ImageData();
         }
 
-        public void MakeRandom()
+        /// <summary>
+        /// Mostly just for debugging.
+        /// </summary>
+        public void ShuffleImages()
         {
             var rnd = new Random();
             var result = images.OrderBy(item => rnd.Next());
 
-            images = new ConcurrentBag<ImageData>(result);
+            this.images = new ConcurrentBag<ImageData>(result);
         }
-
+        
+        /// <summary>
+        /// Analyze the pattern cells.
+        /// This should be called after all the images are added so we know
+        /// how many cells there should be.
+        /// 
+        /// TODO: This should be made private, then we lose some of the diagnostics.
+        /// </summary>
         public void AnalyzeCells()
         {
             imagesPerRow = (int)Math.Ceiling(Math.Sqrt(images.Count));
@@ -116,19 +135,19 @@
 
             this.imageCells = new ColorValue[imagesPerRow, imagesPerRow];
 
+            double cellPixelCount = avatarSize * avatarSize;
+
             // loop all the cells
             for (int cellX = 0; cellX < imagesPerRow; cellX++)
             {
                 for (int cellY = 0; cellY < imagesPerRow; cellY++)
                 {
-                    // loop the cell
-
                     int cellOffsetX = cellX * avatarSize;
                     int cellOffsetY = cellY * avatarSize;
 
-                    var colorValue = new ColorValue();
                     double aR = 0, aG = 0, aB = 0;
 
+                    // loop the cell
                     for (int x = 0; x < avatarSize; x++)
                     {
                         for (int y = 0; y < avatarSize; y++)
@@ -145,25 +164,24 @@
                         }
                     }
 
-                    double pixelCount = avatarSize * avatarSize;
-                    colorValue.R = aR / pixelCount;
-                    colorValue.G = aG / pixelCount;
-                    colorValue.B = aB / pixelCount;
-
-                    imageCells[cellX, cellY] = colorValue;
+                    imageCells[cellX, cellY] = new ColorValue(aR / cellPixelCount, aG / cellPixelCount, aB / cellPixelCount);
                 }
             }
         }
         
+        /// <summary>
+        /// Create the mosaic image.
+        /// </summary>
         public Image CreateImage()
         {
+            // Create a copy of all the imagedata structs.
             var allImages = new List<ImageData>(images);
             if (allImages.Count == 0)
             {
-                throw new Exception();
+                throw new NotSupportedException("There are not inputed images.");
             }
 
-            var imageCellData = new ImageData[imagesPerRow, imagesPerRow];
+            // Create the image byte array.
             var imageBytes = new byte[desiredSize * desiredSize * 4];
 
             // loop all the cells
@@ -182,19 +200,19 @@
                         // find the closest matching image to this cell
                         var imageDataIndex = 0;
                         var imageData = allImages[imageDataIndex];
-                        var imageDataValue = imageData.Value();
+                        var imageDataValue = imageData.Color.Value();
 
                         var cellAvg = Math.Abs(desiredCellValue - imageDataValue);
 
                         for (int i = 0; i < allImages.Count; i++)
                         {
-                            var currentCellValue = allImages[i].Value();
+                            var currentCellValue = allImages[i].Color.Value();
                             // TODO: This could be improved to match the color better.
                             if (cellAvg > Math.Abs(desiredCellValue - currentCellValue))
                             {
                                 imageDataIndex = i;
                                 imageData = allImages[i];
-                                imageDataValue = imageData.Value();
+                                imageDataValue = imageData.Color.Value();
                             }
                         }
 
@@ -225,6 +243,9 @@
                     }
                     else
                     {
+                        // This happends if we are out of images.
+
+                        // Write the average cell color as image instead
                         for (int x = 0; x < avatarSize; x++)
                         {
                             for (int y = 0; y < avatarSize; y++)
