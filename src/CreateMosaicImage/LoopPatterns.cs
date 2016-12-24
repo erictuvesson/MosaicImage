@@ -76,10 +76,15 @@
             
             for (int i = 0; i < max; i++)
             {
-                if ((-x2 <= x) && (x < x2) && 
-                    (-y2 <= y) && (y < y2))
+                if ((-x2 <= x) && (x <= x2) && 
+                    (-y2 <= y) && (y <= y2))
                 {
-                    Action(new Point(x2 + x, y2 + y));
+                    int newX = x2 + x;
+                    int newY = y2 + y;
+
+                    // TODO: Does this go outside the bounds?
+
+                    Action(new Point(newX, newY));
                 }
 
                 if ((x == y) || 

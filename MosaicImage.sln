@@ -15,7 +15,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Nine.Imaging", "dep\Nine.Im
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{12C27687-011E-4C7A-83D7-638B24D4BFB8}"
 	ProjectSection(SolutionItems) = preProject
-		build\build.cmd = build\build.cmd
+		build\build_twitch.cmd = build\build_twitch.cmd
+		build\build_twitter.cmd = build\build_twitter.cmd
 		README.md = README.md
 	EndProjectSection
 EndProject

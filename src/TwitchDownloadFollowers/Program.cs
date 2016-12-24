@@ -15,19 +15,13 @@
     /// <summary>
     /// Command Line Arguments
     /// </summary>
-    public class Options
+    public class Options : Common.BasicDownloaderOptions
     {
         [Option('c', "channel", Required = true, HelpText = "They Twitch Channel we are targeting.")]
         public string TargetChannel { get; set; }
 
         [Option("max", Required = true, HelpText = "Max amount of followers we are fetching.")]
         public int MaxFollowers { get; set; }
-
-        [Option("Output", HelpText = "Output directory.")]
-        public string OutputDirectory { get; set; }
-
-        [Option("OutputPattern", HelpText = "Output pattern image.")]
-        public string OutputPattern { get; set; }
 
         [Option("OutputFollowers", HelpText = "Output all the followers into a textfile.")]
         public bool OutputFollowersList { get; set; }
@@ -38,8 +32,6 @@
         {
             this.TargetChannel = "";
             this.MaxFollowers = 1600; //< https://github.com/justintv/Twitch-API/issues/320
-            this.OutputDirectory = string.Empty;
-            this.OutputPattern = string.Empty;
             this.OutputFollowersList = true;
         }
     }

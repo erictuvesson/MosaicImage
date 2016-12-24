@@ -9,6 +9,7 @@
     <Import_RootNamespace>Common</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)BasicDownloaderOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Version.cs" />
   </ItemGroup>
 </Project>

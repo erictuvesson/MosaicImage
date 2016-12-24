@@ -15,3 +15,4 @@ Creates a mosaic image of multiple small ones and a pattern image to match.
 
 ### TwitchDownloadFollowers
 Download a twitch channels followers avatars and saves them to be used by [CreateMosaicImage]().
+
