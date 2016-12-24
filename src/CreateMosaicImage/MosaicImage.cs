@@ -199,81 +199,82 @@
             }
 
             // Sort all the images.
-            allImages.Sort();
+            //allImages.Sort();
 
             // Create the image byte array.
             var imageBytes = new byte[desiredSize * desiredSize * 4];
 
             // loop all the cells
-            for (int cellX = 0; cellX < imagesPerRow; cellX++)
+
+            LoopPattern pattern = new SpiralLoopPattern(imagesPerRow, imagesPerRow,
+            (item) =>
             {
-                for (int cellY = 0; cellY < imagesPerRow; cellY++)
+                var cellDesiredColor = imageCells[item.X, item.Y];
+
+                int cellOffsetX = item.X * avatarSize;
+                int cellOffsetY = item.Y * avatarSize;
+
+                if (allImages.Count > 0)
                 {
-                    var cellDesiredColor = imageCells[cellX, cellY];
-
-                    int cellOffsetX = cellX * avatarSize;
-                    int cellOffsetY = cellY * avatarSize;
-
-                    if (allImages.Count > 0)
+                    // Find the closest matching image to this cell
+                    var closest = allImages.MinBy(n => Math.Abs((cellDesiredColor - n.Color).Length()));
+                    if (closest != null)
                     {
-                        // Find the closest matching image to this cell
-                        var closest = allImages.MinBy(n => Math.Abs((cellDesiredColor - n.Color).Length()));
-                        if (closest != null)
-                        {
-                            // Remove it so we wont use it again.
-                            allImages.Remove(closest); //< TODO: Optimize
+                        // Remove it so we wont use it again.
+                        allImages.Remove(closest); //< TODO: Optimize
 
-                            // Add the image to the cell
-                            var avatarImage = Image.Load(closest.ImageFile);
-                            avatarImage = avatarImage.Resize(avatarSize);
+                        // Add the image to the cell
+                        var avatarImage = Image.Load(closest.ImageFile);
+                        avatarImage = avatarImage.Resize(avatarSize);
 
-                            // Insert the avatar into the image.
-                            for (int x = 0; x < avatarSize; x++)
-                            {
-                                for (int y = 0; y < avatarSize; y++)
-                                {
-                                    var pixel = avatarImage[x, y];
-
-                                    int newX = cellOffsetX + x;
-                                    int newY = cellOffsetY + y;
-
-                                    int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
-                                    imageBytes[offset + 0] = pixel.B;
-                                    imageBytes[offset + 1] = pixel.G;
-                                    imageBytes[offset + 2] = pixel.R;
-                                    imageBytes[offset + 3] = pixel.A;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // This should not happen.
-                            Debugger.Break();
-                        }
-                    }
-                    else
-                    {
-                        // This happends if we are out of images.
-
-                        // Write the average cell color as image instead
+                        // Insert the avatar into the image.
                         for (int x = 0; x < avatarSize; x++)
                         {
                             for (int y = 0; y < avatarSize; y++)
                             {
+                                var pixel = avatarImage[x, y];
+
                                 int newX = cellOffsetX + x;
                                 int newY = cellOffsetY + y;
 
                                 int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
-                                imageBytes[offset + 0] = (byte)(cellDesiredColor.B * 255);
-                                imageBytes[offset + 1] = (byte)(cellDesiredColor.G * 255);
-                                imageBytes[offset + 2] = (byte)(cellDesiredColor.R * 255);
-                                imageBytes[offset + 3] = 255;
+                                imageBytes[offset + 0] = pixel.B;
+                                imageBytes[offset + 1] = pixel.G;
+                                imageBytes[offset + 2] = pixel.R;
+                                imageBytes[offset + 3] = pixel.A;
                             }
                         }
                     }
+                    else
+                    {
+                        // This should not happen.
+                        Debugger.Break();
+                    }
                 }
-            }
+                else
+                {
+                    // This happends if we are out of images.
 
+                    // Write the average cell color as image instead
+                    for (int x = 0; x < avatarSize; x++)
+                    {
+                        for (int y = 0; y < avatarSize; y++)
+                        {
+                            int newX = cellOffsetX + x;
+                            int newY = cellOffsetY + y;
+
+                            int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
+                            imageBytes[offset + 0] = (byte)(cellDesiredColor.B * 255);
+                            imageBytes[offset + 1] = (byte)(cellDesiredColor.G * 255);
+                            imageBytes[offset + 2] = (byte)(cellDesiredColor.R * 255);
+                            imageBytes[offset + 3] = 255;
+                        }
+                    }
+                }
+            });
+
+            pattern.Execute();
+            
             return new Image(desiredSize, desiredSize, imageBytes);
         }
     }
