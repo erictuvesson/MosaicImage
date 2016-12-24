@@ -73,18 +73,22 @@
 
             int x2 = Width / 2;
             int y2 = Height / 2;
-
+            
             for (int i = 0; i < max; i++)
             {
-                if ((-Width / 2 <= x) && (x <= Width / 2) && (-Height / 2 <= y) && (y <= Height / 2))
+                if ((-x2 <= x) && (x < x2) && 
+                    (-y2 <= y) && (y < y2))
                 {
                     Action(new Point(x2 + x, y2 + y));
                 }
 
-                if ((x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1 - y)))
+                if ((x == y) || 
+                    (x < 0 && x == -y) || 
+                    (x > 0 && x == 1 - y))
                 {
                     t = dx; dx = -dy; dy = t;
                 }
+
                 x += dx; y += dy;
             }
         }

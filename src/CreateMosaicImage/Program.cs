@@ -57,6 +57,7 @@
             if (!File.Exists(result.Value.InputImage))
             {
                 // TODO: Ask to create without pattern.
+                Console.WriteLine($"Cannot find file: {result.Value.InputImage}");
                 return 1;
             }
 
@@ -73,6 +74,7 @@
             Console.WriteLine("Analyzing all the avatars.");
             stopwatch.Start();
 
+            // Add all the small images
             var tasks = new List<Task>();
             foreach (var filepath in files)
             {
@@ -82,7 +84,7 @@
             Task.WaitAll(tasks.ToArray());
 
             // This is not necessary!
-            mosaicImage.ShuffleImages();
+            //mosaicImage.ShuffleImages();
 
             stopwatch.Stop();
             Console.WriteLine($"Analyzed all the avatars. {stopwatch.Elapsed.TotalSeconds} sec");
@@ -119,8 +121,6 @@
                     foreach (var item in failedFiles)
                         file.WriteLine(item);
             }
-
-            //Console.WriteLine($"Added {success} of {files.Length} images.");
 
             return 0;
         }

@@ -6,7 +6,6 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -80,8 +79,8 @@
             this.desiredSize = desiredSize;
 
             // We could resize the pattern in here.
-            Debug.Assert(mosaicPattern.Width == desiredSize);
-            Debug.Assert(mosaicPattern.Height == desiredSize);
+            System.Diagnostics.Debug.Assert(mosaicPattern.Width == desiredSize);
+            System.Diagnostics.Debug.Assert(mosaicPattern.Height == desiredSize);
         }
 
         /// <summary>
@@ -149,7 +148,7 @@
             imagesPerRow = (int)Math.Ceiling(Math.Sqrt(images.Count));
             avatarSize = (int)(desiredSize / imagesPerRow);
 
-            this.imageCells = new ColorValue[imagesPerRow, imagesPerRow];
+            this.imageCells = new ColorValue[imagesPerRow + 1, imagesPerRow + 1];
 
             double cellPixelCount = avatarSize * avatarSize;
 
@@ -232,7 +231,7 @@
                     else
                     {
                         // This should not happen.
-                        Debugger.Break();
+                        System.Diagnostics.Debugger.Break();
                     }
                 }
                 else
