@@ -1,13 +1,7 @@
-# Twitch Mosaic
+# Mosaic Image
 This is a simple program to take all the followers of a twitch channel and put them into a mosaic image.
 
 > Twitch has a limit so you can only get ~1600 followers.
-
-I made all the steps into smaller programs to make it easier to understand for both me and you.
-
-1. Download all the avatars (TwitchDownloadFollowers)
-2. Create the mosaic image (CreateMosaicImage)
-	This program could be used for other project as well.
 
 ## Getting Started
 
