@@ -121,7 +121,6 @@
                 
                 var imageData = new ImageData(new ColorValue(aR / pixelCount, aG / pixelCount, aB / pixelCount), filepath);
                 images.Add(imageData);
-                images.Add(imageData);
             }
 
             return null;
@@ -228,22 +227,7 @@
                         avatarImage = avatarImage.Resize(avatarSize);
 
                         // Insert the avatar into the image.
-                        for (int x = 0; x < avatarSize; x++)
-                        {
-                            for (int y = 0; y < avatarSize; y++)
-                            {
-                                var pixel = avatarImage[x, y];
-
-                                int newX = cellOffsetX + x;
-                                int newY = cellOffsetY + y;
-
-                                int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
-                                imageBytes[offset + 0] = pixel.B;
-                                imageBytes[offset + 1] = pixel.G;
-                                imageBytes[offset + 2] = pixel.R;
-                                imageBytes[offset + 3] = pixel.A;
-                            }
-                        }
+                        avatarImage.DrawImageToByteArray(cellOffsetX, cellOffsetY, mosaicPattern.Width, ref imageBytes);
                     }
                     else
                     {
@@ -256,20 +240,9 @@
                     // This happends if we are out of images.
 
                     // Write the average cell color as image instead
-                    for (int x = 0; x < avatarSize; x++)
-                    {
-                        for (int y = 0; y < avatarSize; y++)
-                        {
-                            int newX = cellOffsetX + x;
-                            int newY = cellOffsetY + y;
-
-                            int offset = ((cellOffsetY + y) * mosaicPattern.Width + (cellOffsetX + x)) * 4;
-                            imageBytes[offset + 0] = (byte)(cellDesiredColor.B * 255);
-                            imageBytes[offset + 1] = (byte)(cellDesiredColor.G * 255);
-                            imageBytes[offset + 2] = (byte)(cellDesiredColor.R * 255);
-                            imageBytes[offset + 3] = 255;
-                        }
-                    }
+                    ImageExtensions.DrawColorToByteArray(
+                        (byte)(cellDesiredColor.B * 255), (byte)(cellDesiredColor.G * 255), (byte)(cellDesiredColor.R * 255),
+                        avatarSize, avatarSize, cellOffsetX, cellOffsetY, mosaicPattern.Width, ref imageBytes);
                 }
             });
 
