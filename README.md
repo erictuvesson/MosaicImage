@@ -1,7 +1,9 @@
 # Mosaic Image
-This is a simple program to take all the followers of a twitch channel and put them into a mosaic image.
+This is a simple program to take all the followers of a twitch channel or a twitter account and put them into a mosaic image following a color pattern.
 
 > Twitch has a limit so you can only get ~1600 followers.
+
+> Twitter has a limit of 5k.
 
 ## Getting Started
 
