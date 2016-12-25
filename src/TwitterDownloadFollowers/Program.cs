@@ -2,9 +2,11 @@
 {
     using CommandLine;
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Threading;
     using Tweetinvi;
 
     /// <summary>
@@ -50,6 +52,11 @@
 
             // Get the twitter account.
             var user = User.GetUserFromScreenName(result.Value.TargetAccount);
+            if (user == null)
+            {
+                Console.WriteLine("Cannot find Twitter account.");
+                return 1;
+            }
 
             Console.WriteLine($"{result.Value.TargetAccount} has {user.FollowersCount} followers.");
 
@@ -63,31 +70,46 @@
             Directory.CreateDirectory(dirAvatars);
 
             // Download the targeted account image as pattern.
-
+            Common.BasicDownloaderOptions.DownloadAvatar(user.ProfileImageUrl400x400, dir, result.Value);
 
             // Get the account followers.
-            var followers = user.GetFollowers();
+            var followers = new List<long>(user.GetFollowerIds());
+            int followerGatheredCount = followers.Count;
 
             // Download all the logos
             int successLogos = 0;
 
-            foreach (var follower in followers)
+            int followersPerPage = 50;
+            int pages = (int)Math.Ceiling(followers.Count / (float)followersPerPage);
+            for (int i = 0; i < pages; i++)
+            //Parallel.For(0, pages, i =>
             {
-                if (!follower.DefaultProfile)
+                var pageFollowers = followers.Take(followersPerPage);
+                followers.RemoveRange(0, Math.Min(followers.Count, followersPerPage));
+
+                var actualFollowers = User.GetUsersFromIds(pageFollowers);
+
+                int sessionSuccess = 0;
+                foreach (var follower in actualFollowers)
                 {
-                    successLogos++;
+                    if (!follower.DefaultProfile) //< TODO: Not always true
+                    {
+                        sessionSuccess++;
 
-                    var logo = follower.ProfileImageUrl400x400;
+                        var logo = follower.ProfileImageUrl400x400;
 
-                    string extension = Path.GetExtension(logo);
-                    string saveLocation = Path.Combine(dirAvatarsAbsPath, $"{follower.ScreenName}{extension}");
+                        string extension = Path.GetExtension(logo);
+                        string saveLocation = Path.Combine(dirAvatarsAbsPath, $"{follower.ScreenName}{extension}");
 
-                    WebClient webClient = new WebClient();
-                    webClient.DownloadFile(logo, saveLocation);
+                        WebClient webClient = new WebClient();
+                        webClient.DownloadFile(logo, saveLocation);
+                    }
                 }
+
+                Interlocked.Add(ref successLogos, sessionSuccess);
             }
 
-            Console.WriteLine($"{successLogos} of {followers.Count()}({user.FollowersCount}) followers has avatars.");
+            Console.WriteLine($"{successLogos} of {followerGatheredCount}({user.FollowersCount}) followers has avatars.");
 
             return 0;
         }

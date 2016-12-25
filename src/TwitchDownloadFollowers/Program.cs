@@ -86,7 +86,7 @@
 
             // Download channel image as pattern
             var targetChannel = client.GetChannel(result.Value.TargetChannel);
-            DownloadAvatar(targetChannel.Logo, dir, result.Value);
+            Common.BasicDownloaderOptions.DownloadAvatar(targetChannel.Logo, dir, result.Value);
 
             // Download all the follower avatars
             var avatars = DownloadAvatars(dirAvatarsAbsPath);
@@ -169,18 +169,6 @@
                 }
             });
             return avatars;
-        }
-
-        static void DownloadAvatar(string logo, string saveFilepath, Options options)
-        {
-            if (!string.IsNullOrEmpty(logo))
-            {
-                string extension = Path.GetExtension(logo);
-                string saveLocation = Path.Combine(saveFilepath, $"{options.OutputPattern}{extension}");
-
-                WebClient webClient = new WebClient();
-                webClient.DownloadFile(logo, saveLocation);
-            }
         }
     }
 }
